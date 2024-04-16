@@ -1,0 +1,62 @@
+﻿<UserControl
+    x:Class="SharpYTDWPF.MVVM.View.DownloadView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="clr-namespace:SharpYTDWPF.MVVM.View"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    d:DesignHeight="450"
+    d:DesignWidth="800"
+    mc:Ignorable="d">
+    
+    <Grid Background="White">
+        <Grid.RowDefinitions>
+            <RowDefinition />
+            <RowDefinition />
+            <RowDefinition />
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Margin="10,10,10,0">
+            <Label
+                Width="360"
+                Margin="5,0,0,0"
+                HorizontalAlignment="Left"
+                Content="Enter the URLs of the videos you want to download (URL per line)" />
+            <Border
+                Height="65"
+                Margin="10,0,30,0"
+                BorderBrush="Black"
+                BorderThickness="0.8">
+                <ScrollViewer>
+                    <TextBox AcceptsReturn="True"
+                             BorderThickness="0"
+                             Text="{Binding Download.UrlBox}"/>
+                </ScrollViewer>
+            </Border>
+            <Button
+                Width="90"
+                Margin="0,5,30,0"
+                HorizontalAlignment="Right"
+                Content="Load from file"
+                Command="{Binding LoadFromFileCommand}"/>
+        </StackPanel>
+        <StackPanel Grid.Row="1" Margin="10">
+            <Border>
+                <Grid>
+                    <StackPanel Orientation="Horizontal">
+                        <Label Content="Save to" />
+                        <Button Width="32" Command="{Binding ChangePathCommand}"/>
+                        <Label Content="{Binding Download.CurrentPath}"
+                               Style="{StaticResource PathLabel}"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+            <Button Width="96"
+                    Height="24"
+                    Content="Start Download"
+                    HorizontalAlignment="Left"
+                    Margin="0,20,0,0"
+                    Command="{Binding StartDownloadCommand}"/>
+        </StackPanel>
+    </Grid>
+</UserControl>
