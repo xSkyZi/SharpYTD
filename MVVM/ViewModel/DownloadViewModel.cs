@@ -12,13 +12,13 @@ namespace SharpYTDWPF.MVVM.ViewModel
 {
     internal class DownloadViewModel : Core.ViewModel
     {
-        private IDownloadService _download;
-        public IDownloadService Download
+        private IYtdlpService _ytdlp;
+        public IYtdlpService Ytdlp
         {
-            get => _download;
+            get => _ytdlp;
             set
             {
-                _download = value;
+                _ytdlp = value;
                 OnPropertyChanged();
             }
         }
@@ -26,12 +26,12 @@ namespace SharpYTDWPF.MVVM.ViewModel
         public RelayCommand ChangePathCommand { get; set; }
         public RelayCommand LoadFromFileCommand {  get; set; }
         public RelayCommand StartDownloadCommand { get; set; }
-        public DownloadViewModel(IDownloadService downService)
+        public DownloadViewModel(IYtdlpService downService)
         {
-            Download = downService;
-            ChangePathCommand = new RelayCommand(o => Download.ChangePath(), o => true);
-            LoadFromFileCommand = new RelayCommand(o => Download.LoadFromFile(), o => true);
-            StartDownloadCommand = new RelayCommand(o => Download.StartDownload(), o => true);
+            Ytdlp = downService;
+            ChangePathCommand = new RelayCommand(o => Ytdlp.ChangePath(), o => true);
+            LoadFromFileCommand = new RelayCommand(o => Ytdlp.LoadFromFile(), o => true);
+            StartDownloadCommand = new RelayCommand(o => Ytdlp.CheckForValidUris(), o => true);
         }
     }
 }

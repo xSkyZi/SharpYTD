@@ -10,10 +10,9 @@ namespace SharpYTDWPF.MVVM.ViewModel
 {
     public class StatusViewModel : Core.ViewModel
     {
-        public ObservableCollection<VideoFile> videoFiles { get; set; }
         public StatusViewModel()
         {
-            videoFiles = VideoFileManager.GetVideoFiles();
+            
         }
     }
 }

@@ -30,7 +30,7 @@
                 <ScrollViewer>
                     <TextBox AcceptsReturn="True"
                              BorderThickness="0"
-                             Text="{Binding Download.UrlBox}"/>
+                             Text="{Binding Ytdlp.UrlBox}"/>
                 </ScrollViewer>
             </Border>
             <Button
@@ -46,7 +46,7 @@
                     <StackPanel Orientation="Horizontal">
                         <Label Content="Save to" />
                         <Button Width="32" Command="{Binding ChangePathCommand}"/>
-                        <Label Content="{Binding Download.CurrentPath}"
+                        <Label Content="{Binding Ytdlp.CurrentPath}"
                                Style="{StaticResource PathLabel}"/>
                     </StackPanel>
                 </Grid>
