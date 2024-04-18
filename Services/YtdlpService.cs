@@ -1,4 +1,5 @@
 ﻿using SharpYTDWPF.Core;
+using SharpYTDWPF.MVVM.Model;
 using SharpYTDWPF.MVVM.ViewModel;
 using System;
 using System.Collections.Generic;
@@ -9,6 +10,7 @@ using System.Security.Policy;
 using System.Text;
 using System.Threading.Tasks;
 using YoutubeDLSharp;
+using YoutubeDLSharp.Metadata;
 namespace SharpYTDWPF.Services
 {
     public interface IYtdlpService
@@ -23,7 +25,7 @@ namespace SharpYTDWPF.Services
     public class YtdlpService : ObservableObject, IYtdlpService
     {
         private string _currentPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-
+        SemaphoreSlim semaphore = new SemaphoreSlim(10);
         public string CurrentPath
         {
             get => _currentPath;
@@ -83,50 +85,71 @@ namespace SharpYTDWPF.Services
             {
                 if (Uri.TryCreate(line, UriKind.RelativeOrAbsolute, out Uri result))
                 {
-                    _queuedUrls.Add(result.ToString());
+                    DownloadFile(line);
                 }
             }
-            if (!_isDownloading) StartDownload();
         }
 
-        private async void StartDownload()
-        {
-            Debug.WriteLine("StartDownload()");
-            List<Task> tasks = new List<Task>();
-            SemaphoreSlim semaphore = new SemaphoreSlim(10);
-
-            while (_queuedUrls.Count > 0)
-            {
-                await semaphore.WaitAsync();
-
-                tasks.Add(DownloadFile(_queuedUrls[0], semaphore));
-                _queuedUrls.RemoveAt(0);
-            }
-
-            await Task.WhenAll(tasks);
-
-            _isDownloading = false;
-        }
-
-        private async Task DownloadFile(string Uri, SemaphoreSlim semaphore)
+        private async Task DownloadFile(string Uri)
         {
             Debug.WriteLine("DownloadFile()");
+
+            await semaphore.WaitAsync();
+
             YoutubeDL ytdl = new YoutubeDL();
             ytdl.FFmpegPath = Directory.GetCurrentDirectory() + "\\ffmpeg.exe";
             ytdl.YoutubeDLPath = Directory.GetCurrentDirectory() + "\\yt-dlp.exe";
             ytdl.OutputFileTemplate = "%(title)s.%(ext)s";
             ytdl.OutputFolder = _currentPath;
-            CancellationTokenSource cts = new CancellationTokenSource();
 
+            CancellationTokenSource cts = new CancellationTokenSource();
+            VideoFile vid = new VideoFile();
+            QueueManager.AddToActiveQueue(vid);
+
+            var VideoProgress = new Progress<DownloadProgress>(p => ProgressUpdate(p, vid));
+            
             try
             {
-                await ytdl.RunVideoDownload(Uri, ct: cts.Token);
+                await FetchVideoTitle(Uri, vid, ytdl);
+                var res = await ytdl.RunVideoDownload(Uri, ct: cts.Token, progress: VideoProgress);
+                if (!res.Success) vid.Status = "Error";
             } catch (Exception ex)
             {
-                Debug.WriteLine(ex);
+                vid.Status = "Error";
             } finally
             {
                 semaphore.Release();
+            }
+        }
+
+        private async void ProgressUpdate(DownloadProgress p, VideoFile vid)
+        {
+            if (p.State != DownloadState.Success)
+            {
+                vid.Progress = (int)(p.Progress * 100);
+            }
+
+            vid.Speed = p.DownloadSpeed;
+            vid.Eta = p.ETA;
+            if (p.State == DownloadState.None || p.State == DownloadState.Error || p.State == DownloadState.Success || p.State == DownloadState.PreProcessing)
+            {
+                vid.Eta = "--";
+                vid.Speed = "--";
+            }
+            if (p.State != DownloadState.Error) vid.Status = p.State.ToString();
+            OnPropertyChanged();
+        }
+
+        private async Task FetchVideoTitle(string Uri, VideoFile vid, YoutubeDL ytdl)
+        {
+            try
+            {
+                var res = await ytdl.RunVideoDataFetch(Uri);
+                VideoData data = res.Data;
+                vid.Title = data.Title;
+            } catch (Exception ex)
+            {
+
             }
         }
     }

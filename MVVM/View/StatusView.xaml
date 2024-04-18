@@ -7,7 +7,7 @@
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800">
     <Grid Background="White">
-        <ListView Name="ProgressList" ItemsSource="{Binding videoFiles}" Padding="0" Margin="20,30,20,20" BorderThickness="1" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+        <ListView Name="ProgressList" ItemsSource="{Binding ActiveFileQueue}" Padding="0" Margin="20,30,20,20" BorderThickness="1" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
             <ListView.View>
                 <GridView>
                     <GridViewColumn Header="Video" DisplayMemberBinding="{Binding Title}" Width="420"/>
