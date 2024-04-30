@@ -21,19 +21,35 @@ namespace SharpYTDWPF.MVVM.ViewModel
             }
         }
 
+        private IUpdateService _updateService;
+
+        public IUpdateService UpdateService
+        {
+            get => _updateService;
+            set
+            {
+                _updateService = value;
+                OnPropertyChanged();
+            }
+        }
+
         public RelayCommand NavigateDownloadCommand { get; set; }
         public RelayCommand NavigateConvertCommand { get; set; }
         public RelayCommand NavigateStatusCommand { get; set; }
         public RelayCommand NavigateSettingsCommand { get; set; }
 
-        public MainViewModel(INavigationService navService)
+        public MainViewModel(INavigationService navService, IUpdateService updateService)
         {
             Navigation = navService;
+            UpdateService = updateService;
             NavigateDownloadCommand = new RelayCommand(o => { Navigation.NavigateTo<DownloadViewModel>(); }, o => true);
             NavigateConvertCommand = new RelayCommand(o => { Navigation.NavigateTo<ConvertViewModel>(); }, o => true);
             NavigateStatusCommand = new RelayCommand(o => { Navigation.NavigateTo<StatusViewModel>(); }, o => true);
             NavigateSettingsCommand = new RelayCommand(o => { Navigation.NavigateTo<SettingsViewModel>(); }, o => true);
             Navigation.NavigateTo<DownloadViewModel>();
+            UpdateService.CheckFiles();
         }
+
+        
     }
 }

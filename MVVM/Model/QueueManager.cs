@@ -20,5 +20,10 @@ namespace SharpYTDWPF.MVVM.Model
         {
             _activeQueue.Add(videoFile);
         }
+
+        public static void RemoveFromActiveQueue(VideoFile videoFile)
+        {
+            _activeQueue.Remove(videoFile);
+        }
     }
 }

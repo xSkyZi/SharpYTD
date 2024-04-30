@@ -45,7 +45,7 @@ namespace SharpYTDWPF.MVVM.Model
                 OnPropertyChanged();
             }
         }
-        private string _status;
+        private string _status = "In Queue";
         public string? Status
         {
             get => _status;

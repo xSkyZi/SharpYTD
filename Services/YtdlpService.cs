@@ -25,7 +25,8 @@ namespace SharpYTDWPF.Services
     public class YtdlpService : ObservableObject, IYtdlpService
     {
         private string _currentPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-        SemaphoreSlim semaphore = new SemaphoreSlim(10);
+        SemaphoreSlim downloadSemaphore = new SemaphoreSlim(5);
+        SemaphoreSlim fetchSemaphore = new SemaphoreSlim(5);
         public string CurrentPath
         {
             get => _currentPath;
@@ -49,6 +50,17 @@ namespace SharpYTDWPF.Services
 
         private List<string> _queuedUrls = new List<string>();
         private bool _isDownloading = false;
+
+        private INavigationService _navigation;
+        public INavigationService Navigation
+        {
+            get => _navigation;
+            set
+            {
+                _navigation = value;
+                OnPropertyChanged();
+            }
+        }
 
         public async void ChangePath()
         {
@@ -81,20 +93,22 @@ namespace SharpYTDWPF.Services
 
         public async void CheckForValidUris()
         {
-            foreach (string line in UrlBox.Split('\n'))
+            Navigation.NavigateTo<StatusViewModel>();
+            List<string> urlBoxContent = UrlBox.Split('\n').ToList();
+            UrlBox = string.Empty;
+            foreach (string line in urlBoxContent)
             {
                 if (Uri.TryCreate(line, UriKind.RelativeOrAbsolute, out Uri result))
                 {
-                    DownloadFile(line);
+                    VideoFile vid = new VideoFile();
+                    DownloadFile(line, vid);
                 }
             }
+
         }
-
-        private async Task DownloadFile(string Uri)
+        private async Task DownloadFile(string Uri, VideoFile vid)
         {
-            Debug.WriteLine("DownloadFile()");
-
-            await semaphore.WaitAsync();
+            QueueManager.AddToActiveQueue(vid);
 
             YoutubeDL ytdl = new YoutubeDL();
             ytdl.FFmpegPath = Directory.GetCurrentDirectory() + "\\ffmpeg.exe";
@@ -102,23 +116,31 @@ namespace SharpYTDWPF.Services
             ytdl.OutputFileTemplate = "%(title)s.%(ext)s";
             ytdl.OutputFolder = _currentPath;
 
+            if (vid.Title == "Fetching Video Title") if (!await FetchVideoTitle(Uri, vid, ytdl)) return;
+
+            await downloadSemaphore.WaitAsync();
+
             CancellationTokenSource cts = new CancellationTokenSource();
-            VideoFile vid = new VideoFile();
-            QueueManager.AddToActiveQueue(vid);
 
             var VideoProgress = new Progress<DownloadProgress>(p => ProgressUpdate(p, vid));
             
             try
             {
-                await FetchVideoTitle(Uri, vid, ytdl);
                 var res = await ytdl.RunVideoDownload(Uri, ct: cts.Token, progress: VideoProgress);
-                if (!res.Success) vid.Status = "Error";
+                if (!res.Success)
+                {
+                    vid.Status = "Error";
+                    foreach (string line in res.ErrorOutput)
+                    {
+                        Debug.WriteLine(line);
+                    }
+                }
             } catch (Exception ex)
             {
                 vid.Status = "Error";
             } finally
             {
-                semaphore.Release();
+                downloadSemaphore.Release();
             }
         }
 
@@ -140,17 +162,52 @@ namespace SharpYTDWPF.Services
             OnPropertyChanged();
         }
 
-        private async Task FetchVideoTitle(string Uri, VideoFile vid, YoutubeDL ytdl)
+        private async Task<bool> FetchVideoTitle(string Uri, VideoFile vid, YoutubeDL ytdl)
         {
+
+            await fetchSemaphore.WaitAsync();
+
             try
             {
                 var res = await ytdl.RunVideoDataFetch(Uri);
+                if (!res.Success)
+                {
+                    vid.Status = "Error";
+                    fetchSemaphore.Release();
+                    return false;
+                }
                 VideoData data = res.Data;
+                if (data.ResultType == MetadataType.Playlist)
+                {
+                    GetPlaylistSongs(data.Entries, data.Title);
+                    fetchSemaphore.Release();
+                    QueueManager.RemoveFromActiveQueue(vid);
+                    return false;
+                }
                 vid.Title = data.Title;
+                fetchSemaphore.Release();
+                return true;
             } catch (Exception ex)
             {
-
+                vid.Status = "Error";
+                fetchSemaphore.Release();
+                return false;
             }
+        }
+
+        private async void GetPlaylistSongs(VideoData[] videos, string playlistName)
+        {
+            foreach (VideoData vid in videos)
+            {
+                VideoFile vidFile = new VideoFile();
+                vidFile.Title = vid.Title + $" [From Playlist \"{playlistName}\"]";
+                DownloadFile(vid.Url, vidFile);
+            }
+        }
+
+        public YtdlpService(INavigationService navService)
+        {
+            Navigation = navService;
         }
     }
 }

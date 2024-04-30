@@ -30,6 +30,7 @@ namespace SharpYTDWPF
             services.AddSingleton<SettingsViewModel>();
             services.AddSingleton<MainViewModel>();
             services.AddSingleton<INavigationService, NavigationService>();
+            services.AddSingleton<IUpdateService, UpdateService>();
             services.AddSingleton<IYtdlpService, YtdlpService>();
 
             services.AddSingleton<Func<Type, ViewModel>>(serviceProvider => viewModelType => (ViewModel)serviceProvider.GetRequiredService(viewModelType));
